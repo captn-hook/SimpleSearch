@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MongoDB Frontend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+        }
+        button {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Search PDF</h2>
+    <form action="/search-pdf" method="get">
+        <input type="text" name="searchText" placeholder="Search Text" required />
+        <button type="submit">Search PDF</button>
+    </form>
+
+    <h2>Uploaded PDFs</h2>
+    <form action="/pdfs" method="get">
+        <button type="submit">View PDFs</button>
+    </form>
+    
+    <h2>Upload PDF</h2>
+    <form action="/upload-pdf" method="post" enctype="multipart/form-data">
+        <input type="file" name="pdf" required />
+        <button type="submit">Upload PDF</button>
+    </form>
+
+    <h2>Export DB</h2>
+    <form action="/export" method="get">
+        <button type="submit">Export Data</button>
+    </form>
+
+    <h2>Load DB</h2>
+    <form action="/load" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required />
+        <button type="submit">Load Data</button>
+    </form>
+
+</body>
+</html>
