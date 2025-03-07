@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MongoDB Frontend</title>
+    <title>Frontend</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -23,32 +23,27 @@
 </head>
 <body>
 
-    <h2>Search PDF</h2>
+    <h2>Search</h2>
     <form action="/search" method="get">
         <input type="text" name="q" placeholder="Search Text" required />
-        <button type="submit">Search PDF</button>
+        <button type="submit">Search</button>
     </form>
 
-    <h2>Uploaded PDFs</h2>
-    <form action="/pdfs" method="get">
-        <button type="submit">View PDFs</button>
+    <h2>Uploaded documents</h2>
+    <form action="/docs" method="get">
+        <button type="submit">View Documents</button>
     </form>
     
-    <h2>Upload PDF</h2>
+    <h2>Upload new PDF</h2>
     <form action="/upload-pdf" method="post" enctype="multipart/form-data">
         <input type="file" name="pdf" required />
         <button type="submit">Upload PDF</button>
     </form>
 
-    <h2>Export DB</h2>
-    <form action="/export" method="get">
-        <button type="submit">Export Data</button>
-    </form>
-
-    <h2>Load DB</h2>
-    <form action="/load" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" required />
-        <button type="submit">Load Data</button>
+    <h2>View specific document</h2>
+    <form action="/doc/{id}" method="get">
+        <input type="text" name="id" placeholder="Document ID" required />
+        <button type="submit">View Document</button>
     </form>
 
 </body>

@@ -10,9 +10,9 @@
     
     http://localhost:3000/
     
-# Admin Panel
+# Opensearch panel
 
-    http://localhost:8081/
+    http://localhost:5601/
     
 # Next steps 
 
