@@ -6,12 +6,13 @@ services:
       - discovery.type=single-node
       - "DISABLE_INSTALL_DEMO_CONFIG=true"
       - "DISABLE_SECURITY_PLUGIN=true"
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}"
     ulimits:
       memlock:
         soft: -1
         hard: -1
     ports:
-      - 9200:9200
+      - "${OPENSEARCH_PORT-9200}:9200"
 
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:latest
@@ -22,13 +23,42 @@ services:
       - "5601"
     environment:
       - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
-      - "OPENSEARCH_HOSTS=http://opensearch-node:9200"
+      - "OPENSEARCH_HOSTS=${OPENSEARCH_HOST}:${OPENSEARCH_PORT}"
 
-  web:
-    build: ./web
+  ollama:
+    volumes:
+      - ollama:/root/.ollama
+    container_name: ollama
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
     ports:
-      - 3000:3000
-    environment:
-      DATABASE_URL: http://opensearch-node:9200
+      - "${OLLAMA_PORT-11434}:11434"
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG-main}
+    container_name: open-webui
+    volumes:
+      - open-webui:/app/backend/data
     depends_on:
-      - opensearch-node
+      - ollama
+    ports:
+      - "${OPEN_WEBUI_PORT-3000}:8080"
+    environment:
+      - 'OLLAMA_BASE_URL=${OLLAMA_BASE_URL}:${OLLAMA_PORT}'
+      - 'WEBUI_SECRET_KEY='
+      - 'VECTOR_DB=opensearch'
+      - 'OPENSEARCH_URI=${OPENSEARCH_HOST}:${OPENSEARCH_PORT}'
+      - 'OPENSEARCH_USERNAME=${OPENSEARCH_USERNAME}'
+      - 'OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}'
+      - 'OPENSEARCH_SSL=false'
+      - 'OPENSEARCH_CERT_VERIFY=false'
+      - 'ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION=false'
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+
+volumes:
+  ollama: {}
+  open-webui: {}
