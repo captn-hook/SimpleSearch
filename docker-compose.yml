@@ -4,8 +4,8 @@ services:
     container_name: opensearch-node
     environment:
       - discovery.type=single-node
+      - network.host=0.0.0.0 
       - "DISABLE_INSTALL_DEMO_CONFIG=true"
-      - "DISABLE_SECURITY_PLUGIN=true"
       - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}"
     ulimits:
       memlock:
@@ -13,7 +13,13 @@ services:
         hard: -1
     ports:
       - "${OPENSEARCH_PORT-9200}:9200"
-
+    volumes:
+      - ./root-ca.pem:/usr/share/opensearch/config/root-ca.pem
+      - ./admin.pem:/usr/share/opensearch/config/admin.pem
+      - ./admin-key.pem:/usr/share/opensearch/config/admin-key.pem
+      - ./node1.pem:/usr/share/opensearch/config/node1.pem
+      - ./node1-key.pem:/usr/share/opensearch/config/node1-key.pem
+      - ./custom-opensearch.yml:/usr/share/opensearch/config/opensearch.yml
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:latest
     container_name: opensearch-dashboards
@@ -22,9 +28,8 @@ services:
     expose:
       - "5601"
     environment:
-      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
       - "OPENSEARCH_HOSTS=${OPENSEARCH_HOST}:${OPENSEARCH_PORT}"
-
+      - "OPENSEARCH_USERNAME=${OPENSEARCH_USERNAME}"
   ollama:
     volumes:
       - ollama:/root/.ollama
@@ -52,7 +57,6 @@ services:
       - 'OPENSEARCH_URI=${OPENSEARCH_HOST}:${OPENSEARCH_PORT}'
       - 'OPENSEARCH_USERNAME=${OPENSEARCH_USERNAME}'
       - 'OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}'
-      - 'OPENSEARCH_SSL=false'
       - 'OPENSEARCH_CERT_VERIFY=false'
       - 'ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION=false'
     extra_hosts:
