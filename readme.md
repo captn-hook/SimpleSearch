@@ -4,7 +4,7 @@
     
 # To remove / restart
 
-    docker-compose down -v
+    docker-compose down --remove-orphans
 
 then, navigate to the [WebUI](http://localhost:3000/) and choose a model like [deepseek-r1:1.5b](https://ollama.com/library/deepseek-r1)
 

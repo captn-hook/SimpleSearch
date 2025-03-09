@@ -60,6 +60,10 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 8g
 
 volumes:
   ollama: {}
