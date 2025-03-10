@@ -37,9 +37,7 @@ services:
       - "${OLLAMA_PORT-11434}:11434"
 
   open-webui:
-    build:
-      context: ./open-webui
-      dockerfile: Dockerfile
+    image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG-main}
     container_name: open-webui
     volumes:
       - open-webui:/app/backend/data
