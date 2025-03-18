@@ -27,7 +27,7 @@ services:
 
   ollama:
     volumes:
-      - ollama:/root/.ollama
+      - ${VOLUME_PATH}/ollama:/root/.ollama
     container_name: ollama
     pull_policy: always
     tty: true
@@ -35,12 +35,21 @@ services:
     image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
     ports:
       - "${OLLAMA_PORT-11434}:11434"
+    deploy:
+      resources:
+        limits:
+          memory: 16g
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   open-webui:
     image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG-main}
     container_name: open-webui
     volumes:
-      - open-webui:/app/backend/data
+      - ${VOLUME_PATH}/open-webui:/app/backend/data
     depends_on:
       - ollama
     ports:
@@ -58,10 +67,6 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 8g
 
 volumes:
   ollama: {}

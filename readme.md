@@ -1,12 +1,26 @@
 # Get Started 
 
-    docker-compose up --build 
+firstly, you need to edit the volume option in the .env file to point to the directory where you want to store the data. Models and knowledge bases can be more than 10 gb so make sure you have enough space.
+
+furthermore, on wsl2 you will need to set the memory in %UserProfile%\\.wslconfig like
+
+    [wsl2]
+    memory=16GB
+
+## run with docker-compose, -d for detached mode, --build to rebuild the images
+
+    docker-compose up
+
+## after compose
+
+in the admin settings, you can modify the document settings
+also, you can add a tool like [ocrtool.py](./ocrtool.py) 
     
 # To remove / restart
 
     docker-compose down --remove-orphans
 
-then, navigate to the [WebUI](http://localhost:3000/) and choose a model like [deepseek-r1:1.5b](https://ollama.com/library/deepseek-r1) or [llama3.2:3b](https://ollama.com/library/llama3.2:3b)
+then, navigate to the [WebUI](http://localhost:3000/) and choose a model like [phi4](https://ollama.com/library/phi4) or [llama3.2:3b](https://ollama.com/library/llama3.2:3b)
 
 ![img](./image.png)
 
