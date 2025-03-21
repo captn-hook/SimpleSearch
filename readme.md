@@ -18,7 +18,8 @@ if you are on windows, in wsl2 you will need to set the memory in %UserProfile%\
 
 then, navigate to the [WebUI](http://localhost:3000/) 
 
-all of your important settings are in Settings > Admin Settings
+all of your important settings are in Settings > Admin Settings > Models and Documents
+knowledge base and tools are under Workspace > Knowledge Base and Tools
 
 choose a model like [phi4](https://ollama.com/library/phi4) or [llama3.2:3b](https://ollama.com/library/llama3.2:3b)
 
