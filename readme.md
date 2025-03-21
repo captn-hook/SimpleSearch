@@ -1,8 +1,9 @@
 # Get Started 
 
-firstly, you need to edit the volume option in the .env file to point to the directory where you want to store the data. Models and knowledge bases can be more than 10 gb so make sure you have enough space.
+set VOLUME_PATH option in the .env file !
+point to the directory where you want to store large files. Models and knowledge bases can be more than 10 gb.
 
-furthermore, on wsl2 you will need to set the memory in %UserProfile%\\.wslconfig like
+if you are on windows, in wsl2 you will need to set the memory in %UserProfile%\\.wslconfig like
 
     [wsl2]
     memory=16GB
@@ -13,35 +14,46 @@ furthermore, on wsl2 you will need to set the memory in %UserProfile%\\.wslconfi
 
 ## after compose
 
-in the admin settings, you can modify the document settings
-also, you can add a tool like [ocrtool.py](./ocrtool.py) 
-    
-# To remove / restart
 
-    docker-compose down --remove-orphans
 
-then, navigate to the [WebUI](http://localhost:3000/) and choose a model like [phi4](https://ollama.com/library/phi4) or [llama3.2:3b](https://ollama.com/library/llama3.2:3b)
+then, navigate to the [WebUI](http://localhost:3000/) 
+
+all of your important settings are in Settings > Admin Settings
+
+choose a model like [phi4](https://ollama.com/library/phi4) or [llama3.2:3b](https://ollama.com/library/llama3.2:3b)
 
 ![img](./image.png)
+
+set extraction engine to http://tika:9998
+
+![img](./image3.png)
+
+maybe also specify
+
+    Chunk Size: 2000
+    Chunk Overlap: 200
+
+you can also download and then specify an embedding model like [nomic-embed-text](https://ollama.com/library/nomic-embed-text) for uploading documents.
+
+![img](./image1.png)
 
 then, you can create a knowledge base and upload documents to it:
 
 ![img](./image2.png)
 
+
+in the admin settings, you can modify the document settings
+also, you can add a tool like [ocrtool.py](./ocrtool.py) 
+
 # Pages for all the services
 
-ports are defined in the environment file
     
-# [WebUI](http://localhost:3000/)
+# [WebUI localhost:3000](http://localhost:3000/)
     
-# [Opensearch panel](http://localhost:5601/)
+# [Opensearch localhost:5601](http://localhost:5601/)
 
-# [Ollama API](http://localhost:11434/)
+# [Ollama localhost:11434](http://localhost:11434/)
         
-# [Opensearch API](http://localhost:9200/)
-    
-# Next steps 
+# [Opensearch localhost:9200](http://localhost:9200/)
 
-Find a good way to do fuzzy search on text 
-Add tagging and library codes to documents 
-Display passages that the search term was found in
+# [Tika localhost:9998](http://localhost:9998/)

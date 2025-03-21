@@ -64,9 +64,25 @@ services:
       - 'OPENSEARCH_SSL=false'
       - 'OPENSEARCH_CERT_VERIFY=false'
       - 'ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION=false'
+      - 'TIKA_SERVER_URL=${TIKA_URL}:${TIKA_PORT}'
+      - 'CONTENT_EXTRACTION_ENGINE=${CONTENT_EXTRACTION_ENGINE}'
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: unless-stopped
+    
+  tika:
+    image: apache/tika:latest-full
+    configs:
+      - source: tika_config_3
+        target: /tika-config.xml
+    container_name: tika
+    ports:
+      - "${TIKA_PORT-9998}:9998"
+    restart: unless-stopped
+
+configs:
+  tika_config_3:
+    file: ./tika-config.xml
 
 volumes:
   ollama: {}
