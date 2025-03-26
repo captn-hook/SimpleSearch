@@ -14,6 +14,9 @@
     <!-- Exclude COSParser from PDFParser -->
     <parser class="org.apache.tika.parser.pdf.PDFParser">
       <parser-exclude class="org.apache.pdfbox.pdfparser.COSParser"/>
+      <PDFParserConfig>
+        <OCR_STRATEGY>OCR_AND_TEXT_EXTRACTION</OCR_STRATEGY>
+      </PDFParserConfig>
     </parser>
   </parsers>
   <server>

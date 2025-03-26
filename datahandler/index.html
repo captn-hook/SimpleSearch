@@ -4,34 +4,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Handler</title>
     <style>
-        #file-list {
-            max-height: 400px;
+        ul {
+            max-height: 40%;
             overflow-y: auto;
             border: 1px solid #ccc;
             padding: 10px;
             list-style: none;
         }
-        #file-list li {
+        ul li {
             display: flex;
             align-items: center;
         }
-        #file-list li .icon {
+        ul li .icon {
             margin-right: 10px;
         }
     </style>
     <script>
         async function listKnowledge() {
-            const response = await fetch('http://open-webui:3000/api/v1/knowledge/');
+            const response = await fetch('/list_knowledge');
             const knowledge = await response.json();
+            console.log(knowledge);
             const knowledgeList = document.getElementById('knowledge-list');
             knowledgeList.innerHTML = '';
             knowledge.forEach(knowledgeItem => {
                 const li = document.createElement('li');
                 const icon = document.createElement('span');
                 icon.className = 'icon';
-                icon.textContent = '🧠'; // Brain icon
+                icon.textContent = '🧠 '; // Brain icon
                 li.appendChild(icon);
-                li.appendChild(document.createTextNode(knowledgeItem.title));
+                li.appendChild(document.createTextNode(knowledgeItem.name));
                 li.addEventListener('click', () => {
                     window.location = `/knowledge/${knowledgeItem.id}`;
                 });
@@ -102,6 +103,8 @@
 <body>
     <h2 id="parent-dir">Knowledge Folder</h2>
     <ul id="file-list"></ul>
+
+    <button onclick="window.location = '/sync' + window.location.pathname">Sync</button>
 
     <h2>Open WebUI Knowledge Base</h2>
     <ul id="knowledge-list"></ul>
