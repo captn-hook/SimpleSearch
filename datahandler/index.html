@@ -1,0 +1,109 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Handler</title>
+    <style>
+        #file-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            list-style: none;
+        }
+        #file-list li {
+            display: flex;
+            align-items: center;
+        }
+        #file-list li .icon {
+            margin-right: 10px;
+        }
+    </style>
+    <script>
+        async function listKnowledge() {
+            const response = await fetch('http://open-webui:3000/api/v1/knowledge/');
+            const knowledge = await response.json();
+            const knowledgeList = document.getElementById('knowledge-list');
+            knowledgeList.innerHTML = '';
+            knowledge.forEach(knowledgeItem => {
+                const li = document.createElement('li');
+                const icon = document.createElement('span');
+                icon.className = 'icon';
+                icon.textContent = '🧠'; // Brain icon
+                li.appendChild(icon);
+                li.appendChild(document.createTextNode(knowledgeItem.title));
+                li.addEventListener('click', () => {
+                    window.location = `/knowledge/${knowledgeItem.id}`;
+                });
+                knowledgeList.appendChild(li);
+            });
+        }
+
+        async function listFiles() {
+            const dir = window.location.pathname.split('/dir/')[1] || '';
+            let response;
+            if (dir === '') {
+                response = await fetch('/list_files');
+            } else {
+                response = await fetch(`/list_files/${dir}`);
+                // add links up the directory tree
+                if (dir.includes('/')) {
+                    innerhtml = `<a href="/">Knowledge Folder</a> / `;
+                    for (let i = 0; i < dir.split('/').length; i++) {
+                        if (i === dir.split('/').length - 1) {
+                            innerhtml += dir.split('/')[i];
+                        } else {
+                            innerhtml += `<a href="/dir/${dir.split('/').slice(0, i + 1).join('/')}">${dir.split('/')[i]}</a> / `;
+                        }
+                    }
+                    const parentDirElement = document.getElementById('parent-dir');
+                    parentDirElement.innerHTML = innerhtml;
+                } else {
+                    const parentDirElement = document.getElementById('parent-dir');
+                    parentDirElement.innerHTML = `<a href="/">Knowledge Folder</a> / ${dir}`;
+                }
+            }
+
+            const { files, dirs } = await response.json();
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+            dirs.forEach(dir2 => {
+                const li = document.createElement('li');
+                const icon = document.createElement('span');
+                icon.className = 'icon';
+                icon.textContent = '📁'; // Directory icon
+                li.appendChild(icon);
+                li.appendChild(document.createTextNode(dir2));
+                li.addEventListener('click', () => {
+                    window.location = `/dir/${dir}/${dir2}`;
+                });
+                fileList.appendChild(li);
+            });
+            files.forEach(file => {
+                const li = document.createElement('li');
+                const icon = document.createElement('span');
+                icon.className = 'icon';
+                icon.textContent = '📄'; // File icon
+                li.appendChild(icon);
+                li.appendChild(document.createTextNode(file));
+                li.addEventListener('click', () => {
+                    window.location = `/file/${dir}/${file}`;
+                });
+                fileList.appendChild(li);
+            });
+
+            listKnowledge();
+        }
+
+        window.onload = listFiles;
+
+    </script>
+</head>
+<body>
+    <h2 id="parent-dir">Knowledge Folder</h2>
+    <ul id="file-list"></ul>
+
+    <h2>Open WebUI Knowledge Base</h2>
+    <ul id="knowledge-list"></ul>
+</body>
+</html>

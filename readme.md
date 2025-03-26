@@ -50,6 +50,8 @@ also, you can add a tool like [ocrtool.py](./ocrtool.py)
 
     
 # [WebUI localhost:3000](http://localhost:3000/)
+
+# [Data Handler localhost:5000](http://localhost:5000/)
     
 # [Opensearch localhost:5601](http://localhost:5601/)
 
