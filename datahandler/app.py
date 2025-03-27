@@ -9,6 +9,11 @@ import json
 
 BASE_DIRECTORY = '/app/data/docs/'
 
+wiki_dir = '/app/data/wiki/'
+
+wiki_url = 'https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles-multistream.xml.bz2'
+index = 'https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles-multistream-index.txt.bz2'
+
 base_url = 'http://open-webui:8080/api/v1/'
 
 global current_token
@@ -285,19 +290,21 @@ def sync(name, files):
 
 if __name__ == '__main__':
     
-    # wait for open-webui to be up
-    max_retries = 20
-    for retries in range(max_retries):
-        try:
-            response = requests.get('http://open-webui:8080/api/v1/auths/')
-            # if we get a response then open-webui is up
-            time.sleep(1)
-            break
-        except Exception as err:
-            # wait for 30 seconds
-            print('Waiting for open-webui to be up ' + str(retries))
-            time.sleep(10)
-
+    # If we dont have wikipedia, grab it
+    if not os.path.exists(wiki_dir):
+        os.makedirs(wiki_dir)
+        if not os.path.exists(wiki_dir + wiki_url.split('/')[-1]):
+            print('Downloading wikipedia', file=sys.stderr)
+            os.system('wget ' + wiki_url + ' -P ' + wiki_dir)
+            print('Downloaded wikipedia', file=sys.stderr)
+            # Get the index
+            print('Downloading wikipedia index', file=sys.stderr)
+            os.system('wget ' + index + ' -P ' + wiki_dir)
+            print('Downloaded wikipedia index', file=sys.stderr)
+            # Sync to the database
+            print('Syncing wikipedia', file=sys.stderr)
+            sync_wiki(wiki_dir)
+    print('Trying to authenticate', file=sys.stderr)
     print(auth())
 
     app.run(host='0.0.0.0', port=os.getenv('FLASK_PORT', 5000))

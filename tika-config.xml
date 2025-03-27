@@ -17,6 +17,11 @@
       <PDFParserConfig>
         <OCR_STRATEGY>OCR_AND_TEXT_EXTRACTION</OCR_STRATEGY>
       </PDFParserConfig>
+    <!-- Add XMLParser -->
+    <parser class="org.apache.tika.parser.xml.XMLParser">
+      <mime>application/xml</mime>
+      <mime>text/xml</mime>
+    </parser>
     </parser>
   </parsers>
   <server>

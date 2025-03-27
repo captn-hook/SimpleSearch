@@ -1,6 +1,7 @@
 # Get Started 
 
 set VOLUME_PATH option in the .env file !!!!!!!!!!!
+also, set DEFAULT_USERNAME and DEFAULT_PASSWORD in the .env file
 point to the directory where you want to store large files. Models and knowledge bases can be more than 10 gb.
 
 if you are on windows, in wsl2 you will need to set the memory in %UserProfile%\\.wslconfig like
