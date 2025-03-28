@@ -762,52 +762,80 @@ def sync_wiki(reindex=False):
             results = wiki_search(search_term='', page=page, size=99).json().get('hits', {}).get('hits', [])
             tries -= 1
 
+
         for hit in results:
             seek = hit['_source']['seek']
             hid = hit['_id']
             title = hit['_source']['title']
             title = title.replace('\n', ' ').strip() 
+
             # save the file to the temp file
             filename = '/tmp/' + title.replace('/', '_').replace(':', '_') + '.md'  # ensure filename is valid
-            # clear and files in temp
-            for temp_file in os.listdir('/tmp/'):
-                temp_file_path = os.path.join('/tmp/', temp_file)
-                try:
-                    if os.path.isfile(temp_file_path):
-                        os.remove(temp_file_path)
-                except Exception as e:
-                    print(f"Error deleting temp file: {e}", file=sys.stderr)
-            with open(filename, 'w') as f:
-                text = get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], seek, hid, title)
-                if text is None:
-                    print('Failed to get wikitext for article: ' + str(hid) + ' - ' + str(title), file=sys.stderr)
-                    continue
-                text = html_to_markdown(format_wikitext(text), title)
-                # if this article sucks or is a redirect, skip it
-                if text is None:
-                    continue
-                elif 'REDIRECT' in text:
-                    continue
-                elif len(text) < 100:
-                    continue
-                f.write(text)
-            # upload the file
-            res = upload_file(filename, fileList)
-            if res is None:
-                print('Failed to upload file for article: ' + str(hid) + ' - ' + str(title), file=sys.stderr)
+            
+            # check if the file is already in the knowledge base by title
+            url = BASE_URL + 'knowledge/' + id
+            exists = False
+            try:
+                # check if the file already exists in the knowledge base by title
+                response = requests.get(url, headers=auth_header())
+                if response.status_code == 200:
+                    knowledge_data = response.json()
+                    # Check if a file with the same title already exists in the knowledge base
+                    for file in knowledge_data.get('files', []):
+                        if file['filename'] == title.replace('/', '_').replace(':', '_') + '.md':
+                            exists = True
+                            break
+            except Exception as err:
+                print(f"Error checking knowledge base for existing file: {err}", file=sys.stderr)
                 continue
-           
+
+            if exists:
+                print(f"Skipping file as it already exists in the knowledge base: {title}", file=sys.stderr)
+                continue
+                
             else:
-                data = {
-                    'file_id': res['id']
-                }
-                url = BASE_URL + 'knowledge/' + id + '/file/add'
-                try:
-                    response = requests.post(url, headers=auth_header(), json=data)
-                    if response.status_code != 200:
-                        print('Failed to add file to knowledge base for article: ' + str(hid) + ' - ' + str(title), file=sys.stderr)
-                except Exception as err:
-                    print(err, file=sys.stderr)
+                # clear the files in temp
+                for temp_file in os.listdir('/tmp/'):
+                    temp_file_path = os.path.join('/tmp/', temp_file)
+                    try:
+                        if os.path.isfile(temp_file_path):
+                            os.remove(temp_file_path)
+                    except Exception as e:
+                        print(f"Error deleting temp file: {e}", file=sys.stderr)
+                with open(filename, 'w') as f:
+                    text = get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], seek, hid, title)
+                    if text is None:
+                        print('Failed to get wikitext for article: ' + str(hid) + ' - ' + str(title), file=sys.stderr)
+                        continue
+                    text = html_to_markdown(format_wikitext(text), title)
+                    # if this article sucks or is a redirect, skip it
+                    if text is None:
+                        continue
+                    elif 'REDIRECT' in text:
+                        continue
+                    elif len(text) < 100:
+                        continue
+                    f.write(text)
+                # upload the file
+                res = upload_file(filename, fileList)
+                if res is None:
+                    print('Failed to upload file for article: ' + str(hid) + ' - ' + str(title), file=sys.stderr)
+                    continue
+            
+                else:
+                    data = {
+                        'file_id': res['id']
+                    }
+                    url = BASE_URL + 'knowledge/' + id + '/file/add'
+                    try:
+                        response = requests.post(url, headers=auth_header(), json=data)
+                        if response.status_code != 200:
+                            print('Failed to add file to knowledge base for article: ' + str(hid) + ' - ' + str(title), file=sys.stderr)
+                    except ValueError as ve:
+                        # duplicate file in the knowledge base, this can happen if the same article is uploaded multiple times
+                        continue
+                    except Exception as err:
+                        print(err, file=sys.stderr)
         
         requests.post(DB_URL + '/_refresh')
     
