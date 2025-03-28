@@ -18,6 +18,24 @@
         ul li .icon {
             margin-right: 10px;
         }
+        button {
+            margin-top: 10px;
+        }
+        textarea {
+            width: 200px;
+            height: 30px;
+            margin-right: 10px;
+        }
+        .div1 {
+            margin: 10px;
+        }
+        .red {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+        }
     </style>
     <script>
         async function listKnowledge() {
@@ -104,8 +122,14 @@
     <h2 id="parent-dir">Knowledge Folder</h2>
     <ul id="file-list"></ul>
 
-    <button onclick="window.location = '/sync' + window.location.pathname">Sync</button>
-
+    <div class="div1">
+        <textarea id="wiki-search" placeholder="Search Wiki"></textarea>
+        <button onclick="window.location = '/wiki?search=' + document.getElementById('wiki-search').value">Search</button>
+    </div>
+    <div class="div1">
+        <button class="red" onclick="window.location = '/sync' + window.location.pathname">Sync Files</button>
+        <button class="red" onclick="window.location = '/sync_wiki'">Sync Wiki</button>
+    </div>
     <h2>Open WebUI Knowledge Base</h2>
     <ul id="knowledge-list"></ul>
 </body>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results</title>
+    <script>
+        function goToPage(page) {
+            const searchTerm = new URLSearchParams(window.location.search).get('search') || '';
+            window.location = `/wiki?search=${searchTerm}&page=${page}`;
+        }
+    </script>
+    <style>
+        .results {
+            flex: 1;
+            list-style-type: none;
+            padding: 0;
+            height: 70%;
+            overflow-y: scroll;
+        }
+        .result {
+            margin-bottom: 10px;
+            padding: 10px;
+        }
+        #pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        button {
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; overflow-y: auto;">
+    <h1>Search: {{ search }}</h1>
+    <ul id="results" class="results">
+        <!-- Results will be dynamically inserted here -->
+        {% for result in results %}
+            <li class="result">
+                <h3><a href="/view/{{ result._id }}">{{ result._source.title }}</a></h3>
+                <p>Score: {{ result._score }} | Seek: {{ result._source.seek }}</p>
+            </li>
+        {% endfor %}
+        </ul>
+    <div id="pagination">
+        {% if page > 1 %}
+            <button onclick="goToPage({{ page - 1 }})">Previous</button>
+        {% endif %}
+        <span>Page {{ page }}</span>
+        {% if has_more %}
+            <button onclick="goToPage({{ page + 1 }})">Next</button>
+        {% endif %}
+    </div>
+</body>
+</html>
