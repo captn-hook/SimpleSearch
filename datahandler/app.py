@@ -698,10 +698,10 @@ def sync_wiki(reindex=False):
 
         print(results, file=sys.stderr)
 
-        if len(results) == 0:
-            print('Finished uploading')
-            done = True
-            break
+        tries = 10
+        while len(results) == 0 and tries > 0:
+            results = wiki_search(search_term='', page=page, size=99).json().get('hits', {}).get('hits', [])
+            tries -= 1
 
         for hit in results:
             # save the file to the temp file
