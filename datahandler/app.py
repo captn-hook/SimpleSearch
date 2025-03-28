@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, send_file, redirect, request, render_template
+from flask import Flask, jsonify, send_file, redirect, request, render_template, make_response
 import requests
 from requests.auth import HTTPBasicAuth # for opensearch if we enable security
 from urllib.parse import unquote as URLDecoder
@@ -22,7 +22,7 @@ INDEX = 'https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles-
 
 BASE_URL = os.getenv('OPENWEBUI_URL', 'http://open-webui:8080') + '/api/v1/'
 
-DB_URL = os.getenv('OPENSEARCH_URI', 'http://opensearch-node:9200')
+DB_URL = os.getenv('OPENSEARCH_URI', 'http://opensearch-node1:9200')
 
 global current_token
 current_token = None
@@ -41,7 +41,6 @@ HEADERS = {
     }
 
 def signup():
-    print('Signing up as default user', file=sys.stderr)
     url = BASE_URL + 'auths/signup'
 
     data ={
@@ -58,7 +57,6 @@ def signup():
         return None
 
 def login():
-    print('Logging in as default user', file=sys.stderr)
     url = BASE_URL + 'auths/signin'
     
     data = {
@@ -76,14 +74,13 @@ def login():
         print(err, file=sys.stderr)
         return None
     
-def get_opensearch(indexname = None):
-    url = DB_URL
-    if indexname is not None:
-        url += '/' + indexname
+def get_opensearch(indexname = '_cluster/health'):
+    url = DB_URL + '/' + indexname
 
     try:
         response = requests.get(url)
         if response.status_code == 200:
+            print(f"OpenSearch response: {response.json()}", file=sys.stderr)  # Log the response for debugging
             return response.json()
         else:
             print(response.json(), file=sys.stderr)
@@ -251,13 +248,29 @@ def view_wiki(id):
     if response.status_code != 200:
         print(response.json(), file=sys.stderr)
         return jsonify({"error": "Failed to fetch data from OpenSearch"}), 500
+    response = response.json()
+    seek = response['_source']['seek'] 
+    title = response['_source']['title']
+    # remove newlines and leading/ttrailing whitespace from title for cleaner display
+    title = title.replace('\n', ' ').strip() 
+    id = response['_id']
     
-    text = get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], response.json()['_source']['seek'], id)
+    text = get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], seek, id, title)
 
     if text is None:
-        return jsonify({"error": "Failed to fetch article"}), 500
-
+        print('Failed to get wikitext for article: ' + str(id), file=sys.stderr)
+        return jsonify({"error": "No text found for this article " + str(title)}), 404
     text = format_wikitext(text)
+
+    if request.args.get('markdown', 'false').lower() == 'true':
+        # return as text file
+        # Create a text/plain response with the markdown content
+        markdown_text = html_to_markdown(text, title)  # Convert HTML to Markdown
+        response = make_response(markdown_text)
+        response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename="{title.replace(" ", "_")}.md"'
+        # Return the response to download the markdown file
+        return response
 
     return render_template('article.html', article=text)
 
@@ -445,7 +458,6 @@ def wiki_index(search_term='*'):
     
 def create_opensearch(indexname = 'wikipedia'):
     url = DB_URL + '/' + indexname
-    print(url, file=sys.stderr)
     data = {
         "mappings": {
             "properties": {
@@ -468,7 +480,7 @@ def create_opensearch(indexname = 'wikipedia'):
         return None
 
 
-def get_wikitext(dump_filename, offset, page_id=None, title=None, namespace_id=None, verbose=True, block_size=256*1024):
+def get_wikitext(dump_filename, offset, page_id=None, title=None, namespace_id=None, block_size=256*1024):
     """Extract and clean wikitext from a multistream dump file."""
     unzipper = bz2.BZ2Decompressor()
 
@@ -490,11 +502,12 @@ def get_wikitext(dump_filename, offset, page_id=None, title=None, namespace_id=N
     xml_data = "<root>" + uncompressed_text + "</root>"
     root = ET.fromstring(xml_data)
     for page in root.findall("page"):
-        if title is not None and title != page.find("title").text:
+        pTitle = page.find("title").text.replace('\n', ' ').strip()
+        if title is not None and str(title).strip() != str(pTitle):
             continue
         if namespace_id is not None and namespace_id != int(page.find("ns").text):
             continue
-        if page_id is not None and page_id != int(page.find("id").text):
+        if page_id is not None and int(page_id) != int(page.find("id").text):
             continue
 
         # Extract wikitext
@@ -506,20 +519,19 @@ def get_wikitext(dump_filename, offset, page_id=None, title=None, namespace_id=N
         if redirect_match:
             redirect_title = redirect_match.group(1)
             # Handle fetching the redirected article (not implemented here)
-            if verbose:
-                print(f"Redirected to: {redirect_title}")
             # search for the redirected article
             response = wiki_search(redirect_title, size=1)
             results = response.json().get('hits', {}).get('hits', [])
             if results:
                 article = results[0]
-                return get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], article['_source']['seek'], article['_id'])
+                return get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], article['_source']['seek'], article['_id'], article['_source']['title'])
             else:
+                print(f"Redirected article not found: {redirect_title}", file=sys.stderr)
                 return None            
-
         return wikitext
     
     # If no matching page is found
+    print(f"No matching page found for title: {title}, page_id: {page_id}, namespace_id: {namespace_id}", file=sys.stderr)
     return None
 
 
@@ -544,18 +556,68 @@ def format_wikitext(wikitext):
         elif node_type == "Wikilink":
             target = escape(str(node.title))
             text = escape(str(node.text)) if node.text else target
-            html_output += f"<a href='/wiki/{target}'>{text}</a>"
+
+            if '|' in text:
+                text = text.split('|')[-1]
+            
+            if 'thumb' in text.split('|')[0]:
+                # handle links [[]] in the 
+                for link in re.findall(r'\[\[(.*?)\]\]', text):
+                    # if there are any links inside the link text, we need to handle them
+                    text = text.replace(link, f"<a class='wikilink' href='/wiki/{link}'>{link}</a>")
+
+                html_output += f"<a class='img' href='/wiki/{target}'>🖼️</a> {text}"
+
+            else:
+                html_output += f"<a class='wikilink' href='/wiki/{target}'>{text}</a>"
         elif node_type == "ExternalLink":
             url = escape(str(node.url))
             text = escape(str(node.title)) if node.title else url
-            html_output += f"<a href='{url}'>{text}</a>"
+            html_output += f"<a class='external' href='{url}'>{text}</a>"
         elif node_type == "Heading":
             level = node.level
             heading_text = escape(str(node.title.strip_code()))
             html_output += f"<h{level}>{heading_text}</h{level}>"
         elif node_type == "Tag":
             if node.tag == "ref":
-                html_output += f"<span class='reference'>{escape(str(node))}</span>"
+                # Parse the content inside the <ref> tag
+                ref_content = str(node.contents.strip_code())
+                citation_html = ""
+
+                # Check if the content is a citation template
+                if ref_content.startswith("{{cite"):
+                    # Extract citation fields
+                    fields = {}
+                    for part in ref_content.strip("{}").split("|"):
+                        if "=" in part:
+                            key, value = part.split("=", 1)
+                            fields[key.strip()] = value.strip()
+
+                    # Build the citation HTML
+                    url = fields.get("url", "")
+                    title = fields.get("title", "Untitled")
+                    author = f"{fields.get('first', '')} {fields.get('last', '')}".strip()
+                    date = fields.get("date", "")
+                    website = fields.get("website", "")
+
+                    citation_html = f"<cite>"
+                    if url:
+                        citation_html += f"<a class='cite' href='{escape(url)}'>{escape(title)}</a>"
+                    else:
+                        citation_html += escape(title)
+                    if author:
+                        citation_html += f" by {escape(author)}"
+                    if date:
+                        citation_html += f", {escape(date)}"
+                    if website:
+                        citation_html += f" ({escape(website)})"
+                    citation_html += f"</cite>"
+                else:
+                    # If not a citation template, output raw content
+                    citation_html = escape(ref_content)
+
+                # Wrap the citation in a reference span
+                html_output += f" <sub class='reference'>{citation_html}</sub>"
             else:
                 html_output += escape(str(node))
         elif node_type == "Bold":
@@ -565,48 +627,49 @@ def format_wikitext(wikitext):
             html_output += f"<i>{escape(str(node))}</i>"
         elif node_type == "File":
             file_name = escape(str(node.title))
-            html_output += f"<a href='/wiki/File:{file_name}'>{file_name}</a>"
+            finaltext = file_name.split('|')[-1]
+            # handle links [[]] in the 
+            for link in re.findall(r'\[\[(.*?)\]\]', finaltext):
+                # if there are any links inside the link text, we need to handle them
+                finaltext = finaltext.replace(link, f"<a class='wikilink' href='/wiki/{link}'>{link}</a>")
+            html_output += f"<ins>{finaltext}</ins>"
         else:
             html_output += escape(str(node))
 
     if html_output == "":
         return "No content found"
-    
     return html_output
 
-def html_to_markdown(html):
+def html_to_markdown(html, title):
     """
     Convert HTML to Markdown using html2text.
     """
     markdown_converter = html2text.HTML2Text()
-    markdown_converter.ignore_links = False  # Keep links in the Markdown
+    markdown_converter.body_width = 0  # Prevent line wrapping in the output
+    markdown_converter.ignore_links = True  # Keep links in the Markdown
     markdown_output = markdown_converter.handle(html)
+    # add title to the top
+    markdown_output = f"# {title}\n\n" + markdown_output
+
     return markdown_output
 
 def sync_wiki(reindex=False):
     # If we dont have wikipedia, grab it
     if not os.path.exists(WIKI_DIR):
-        print('Wiki does not exist', file=sys.stderr)
         os.makedirs(WIKI_DIR)
     if not os.path.exists(WIKI_DIR + WIKI_URL.split('/')[-1]):
-        print('Downloading wikipedia', file=sys.stderr)
+
         os.system('wget ' + WIKI_URL + ' -P ' + WIKI_DIR)
-        print('Downloaded wikipedia', file=sys.stderr)
     if not os.path.exists(WIKI_DIR + INDEX.split('/')[-1]):
         # Get the index
-        print('Downloading wikipedia INDEX', file=sys.stderr)
         os.system('wget ' + INDEX + ' -P ' + WIKI_DIR)
-        print('Downloaded wikipedia index', file=sys.stderr)
     # check if an index exists in opensearch
     if get_opensearch('wikipedia') is None:
-        print('Creating wikipedia index', file=sys.stderr)
-        print(create_opensearch(), file=sys.stderr)
+        create_opensearch()
         reindex = True
     elif reindex:
         # delete the index and recreate it
-        print('Deleting wikipedia index', file=sys.stderr)
         print(requests.delete(DB_URL + '/wikipedia'), file=sys.stderr)
-        print('Creating wikipedia index', file=sys.stderr)
         print(create_opensearch(), file=sys.stderr)
     
     while get_opensearch('wikipedia') is None:
@@ -685,29 +748,41 @@ def sync_wiki(reindex=False):
         id = knowledge['id']
 
     fileList = get_all_files()
-
+    print('Adding files to knowledge base: ' + name, file=sys.stderr)
     page = 0
-    print('Uploading wikipedia articles')
     done = False
     while not done:
         # get the next page of wikipedia articles
         page += 1
-        print('Uploading articles: ' + str(page * 99 - 99) + ' to ' + str(page * 99))
         
         results = wiki_search(search_term='', page=page, size=99).json().get('hits', {}).get('hits', [])
 
-        print(results, file=sys.stderr)
-
-        tries = 10
+        tries = 3
         while len(results) == 0 and tries > 0:
             results = wiki_search(search_term='', page=page, size=99).json().get('hits', {}).get('hits', [])
             tries -= 1
 
         for hit in results:
+            seek = hit['_source']['seek']
+            hid = hit['_id']
+            title = hit['_source']['title']
+            title = title.replace('\n', ' ').strip() 
             # save the file to the temp file
-            with open('/tmp/file.md', 'w') as f:
-                text = get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], hit['_source']['seek'], hit['_id'])
-                text = html_to_markdown(format_wikitext(text))
+            filename = '/tmp/' + title.replace('/', '_').replace(':', '_') + '.md'  # ensure filename is valid
+            # clear and files in temp
+            for temp_file in os.listdir('/tmp/'):
+                temp_file_path = os.path.join('/tmp/', temp_file)
+                try:
+                    if os.path.isfile(temp_file_path):
+                        os.remove(temp_file_path)
+                except Exception as e:
+                    print(f"Error deleting temp file: {e}", file=sys.stderr)
+            with open(filename, 'w') as f:
+                text = get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], seek, hid, title)
+                if text is None:
+                    print('Failed to get wikitext for article: ' + str(hid) + ' - ' + str(title), file=sys.stderr)
+                    continue
+                text = html_to_markdown(format_wikitext(text), title)
                 # if this article sucks or is a redirect, skip it
                 if text is None:
                     continue
@@ -715,17 +790,22 @@ def sync_wiki(reindex=False):
                     continue
                 elif len(text) < 100:
                     continue
-
-                print(text, file=sys.stderr)
                 f.write(text)
             # upload the file
-            res = upload_file('/tmp/file.md', fileList)
-            if res is not None:
+            res = upload_file(filename, fileList)
+            if res is None:
+                print('Failed to upload file for article: ' + str(hid) + ' - ' + str(title), file=sys.stderr)
+                continue
+           
+            else:
                 data = {
                     'file_id': res['id']
                 }
+                url = BASE_URL + 'knowledge/' + id + '/file/add'
                 try:
-                    response = requests.post(BASE_URL + 'knowledge/wikipedia/file/add', headers=auth_header(), json=data)
+                    response = requests.post(url, headers=auth_header(), json=data)
+                    if response.status_code != 200:
+                        print('Failed to add file to knowledge base for article: ' + str(hid) + ' - ' + str(title), file=sys.stderr)
                 except Exception as err:
                     print(err, file=sys.stderr)
         

@@ -1,9 +1,13 @@
 services:
-  opensearch-node:
+  opensearch-node1:
     image: opensearchproject/opensearch:latest
-    container_name: opensearch-node
+    container_name: opensearch-node1
     environment:
-      - discovery.type=single-node
+      - cluster.name=opensearch-cluster # Name the cluster
+      - node.name=opensearch-node1 # Name the node that will run in this container
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2 # Nodes to look for when discovering the cluster
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2 # Nodes eligible to serve as cluster manager
+      - bootstrap.memory_lock=true # Disable JVM heap memory swapping
       - "DISABLE_INSTALL_DEMO_CONFIG=true"
       - "DISABLE_SECURITY_PLUGIN=true"
       - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${DEFAULT_PASSWORD}"
@@ -11,19 +15,50 @@ services:
       memlock:
         soft: -1
         hard: -1
+      nofile:
+        soft: 65536 # Maximum number of open files for the opensearch user - set to at least 65536
+        hard: 65536
     ports:
       - "${OPENSEARCH_PORT-9200}:9200"
+    volumes:
+      - ${VOLUME_PATH}/opensearch-data1:/usr/share/opensearch/data # Creates volume called opensearch-data1 and mounts it to the container
+    networks:
+      - opensearch-net # All of the containers will join the same Docker bridge network
 
-  opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:latest
-    container_name: opensearch-dashboards
-    ports:
-      - 5601:5601
-    expose:
-      - "5601"
+  opensearch-node2:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-node2
     environment:
-      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
-      - "OPENSEARCH_HOSTS=${OPENSEARCH_HOST}:${OPENSEARCH_PORT}"
+      - cluster.name=opensearch-cluster # Name the cluster
+      - node.name=opensearch-node2 # Name the node that will run in this container
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2 # Nodes to look for when discovering the cluster
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2 # Nodes eligible to serve as cluster manager
+      - bootstrap.memory_lock=true # Disable JVM heap memory swapping
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+      - "DISABLE_SECURITY_PLUGIN=true"
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${DEFAULT_PASSWORD}"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536 # Maximum number of open files for the opensearch user - set to at least 65536
+        hard: 65536
+    volumes:
+      - ${VOLUME_PATH}/opensearch-data2:/usr/share/opensearch/data # Creates volume called opensearch-data2 and mounts it to the container
+    networks:
+      - opensearch-net # All of the containers will join the same Docker bridge network
+
+  # opensearch-dashboards:
+  #   image: opensearchproject/opensearch-dashboards:latest
+  #   container_name: opensearch-dashboards
+  #   ports:
+  #     - 5601:5601
+  #   expose:
+  #     - "5601"
+  #   environment:
+  #     - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
+  #     - "OPENSEARCH_HOSTS=${OPENSEARCH_HOST}:${OPENSEARCH_PORT}"
 
   ollama:
     volumes:
@@ -44,6 +79,8 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    networks:
+      - opensearch-net # All of the containers will join the same Docker bridge network
 
   open-webui:
     image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG-main}
@@ -70,7 +107,9 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: unless-stopped
-    
+    networks:
+      - opensearch-net # All of the containers will join the same Docker bridge network
+
   tika:
     image: apache/tika:latest-full
     configs:
@@ -80,6 +119,8 @@ services:
     ports:
       - "${TIKA_PORT-9998}:9998"
     restart: unless-stopped
+    networks:
+      - opensearch-net # All of the containers will join the same Docker bridge network
 
   datahandler:
     volumes:
@@ -97,9 +138,12 @@ services:
       - 'SYNC_ON_STARTUP=${SYNC_ON_STARTUP}'
     depends_on:
       - open-webui
-      - opensearch-node
+      - opensearch-node1
+      - opensearch-node2
     restart: unless-stopped
-    
+    networks:
+      - opensearch-net # All of the containers will join the same Docker bridge network
+
 configs:
   tika_config_3:
     file: ./tika-config.xml\
@@ -108,3 +152,9 @@ volumes:
   datahandler: {}
   ollama: {}
   open-webui: {}
+  opensearch-data1: {}
+  opensearch-data2: {} 
+
+
+networks:
+  opensearch-net:
