@@ -254,13 +254,16 @@ def view_wiki(id):
     
     text = get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], response.json()['_source']['seek'], id)
 
+    if text is None:
+        return jsonify({"error": "Failed to fetch article"}), 500
+
     text = format_wikitext(text)
 
     return render_template('article.html', article=text)
 
 @app.route('/sync_wiki', methods=['GET'])
 def sync_wiki_route():
-    return jsonify(sync_wiki(True))
+    return jsonify(sync_wiki())
 
 def wiki_search(search_term = '', page = 1, size = 99):
     
@@ -293,7 +296,7 @@ def wiki_search(search_term = '', page = 1, size = 99):
     response = requests.get(url, json=query)
     if response.status_code != 200:
         print(response.json(), file=sys.stderr)
-        return jsonify({"error": "Failed to fetch data from OpenSearch"}), response.status_code
+        return response
 
     # Return the paginated results
     return response
@@ -566,6 +569,9 @@ def format_wikitext(wikitext):
         else:
             html_output += escape(str(node))
 
+    if html_output == "":
+        return "No content found"
+    
     return html_output
 
 def html_to_markdown(html):
@@ -602,6 +608,10 @@ def sync_wiki(reindex=False):
         print(requests.delete(DB_URL + '/wikipedia'), file=sys.stderr)
         print('Creating wikipedia index', file=sys.stderr)
         print(create_opensearch(), file=sys.stderr)
+    
+    while get_opensearch('wikipedia') is None:
+        print('Waiting for wikipedia index')
+        time.sleep(5)
 
     if reindex:
         # upload the index into opensearch
@@ -669,7 +679,6 @@ def sync_wiki(reindex=False):
     for knowledge in knowledge_list:
         if knowledge['name'] == name:
             id = knowledge['id']
-            return
 
     if id is None:
         knowledge = create_knowledge(name, '')
@@ -677,36 +686,52 @@ def sync_wiki(reindex=False):
 
     fileList = get_all_files()
 
-    for hit in wiki_index()['hits']['hits']:
-        # save the file to the temp file
-        with open('/tmp/file.md', 'w') as f:
-            text = get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], hit['_source']['seek'], hit['_id'])
-            text = html_to_markdown(format_wikitext(text))
-            # if this article sucks or is a redirect, skip it
-            if text is None:
-                continue
-            elif 'REDIRECT' in text:
-                continue
-            elif len(text) < 100:
-                continue
+    page = 0
+    print('Uploading wikipedia articles')
+    done = False
+    while not done:
+        # get the next page of wikipedia articles
+        page += 1
+        print('Uploading articles: ' + str(page * 99 - 99) + ' to ' + str(page * 99))
+        
+        results = wiki_search(search_term='', page=page, size=99).json().get('hits', {}).get('hits', [])
 
-            print(text, file=sys.stderr)
-            f.write(text)
-        # upload the file
-        res = upload_file('/tmp/file.md', fileList)
-        if res is not None:
-            data = {
-                'file_id': res['id']
-            }
-            try:
-                response = requests.post(BASE_URL + 'knowledge/wikipedia/file/add', headers=auth_header(), json=data)
-            except Exception as err:
-                print(err, file=sys.stderr)
-                return None
+        print(results, file=sys.stderr)
+
+        if len(results) == 0:
+            print('Finished uploading')
+            done = True
+            break
+
+        for hit in results:
+            # save the file to the temp file
+            with open('/tmp/file.md', 'w') as f:
+                text = get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], hit['_source']['seek'], hit['_id'])
+                text = html_to_markdown(format_wikitext(text))
+                # if this article sucks or is a redirect, skip it
+                if text is None:
+                    continue
+                elif 'REDIRECT' in text:
+                    continue
+                elif len(text) < 100:
+                    continue
+
+                print(text, file=sys.stderr)
+                f.write(text)
+            # upload the file
+            res = upload_file('/tmp/file.md', fileList)
+            if res is not None:
+                data = {
+                    'file_id': res['id']
+                }
+                try:
+                    response = requests.post(BASE_URL + 'knowledge/wikipedia/file/add', headers=auth_header(), json=data)
+                except Exception as err:
+                    print(err, file=sys.stderr)
+        
+        requests.post(DB_URL + '/_refresh')
     
-    requests.post(DB_URL + '/_refresh')
-    # for now just read and return index
-    return wiki_index()
+    return 'Finished syncing wikipedia'
 
 if __name__ == '__main__':
     
