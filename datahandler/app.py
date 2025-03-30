@@ -480,7 +480,7 @@ def create_opensearch(indexname = 'wikipedia'):
         return None
 
 
-def get_wikitext(dump_filename, offset, page_id=None, title=None, namespace_id=None, block_size=256*1024):
+def get_wikitext(dump_filename, offset, page_id=None, title=None, namespace_id=None, block_size=256*1024, r = 0):
     """Extract and clean wikitext from a multistream dump file."""
     unzipper = bz2.BZ2Decompressor()
 
@@ -488,8 +488,14 @@ def get_wikitext(dump_filename, offset, page_id=None, title=None, namespace_id=N
     uncompressed_data = b""
     with open(dump_filename, "rb") as infile:
         infile.seek(int(offset))
+        iter = 0
+        maxi = 100
 
         while True:
+            iter += 1
+            if iter > maxi:
+                print('Failed to get wikitext for article: ' + str(page_id) + ' - ' + str(title), file=sys.stderr)
+                return None
             compressed_data = infile.read(block_size)
             if not compressed_data:  # End of file
                 break
@@ -516,7 +522,7 @@ def get_wikitext(dump_filename, offset, page_id=None, title=None, namespace_id=N
 
         # Handle redirects
         redirect_match = re.match(r"#REDIRECT \[\[(.*?)\]\]", wikitext, re.IGNORECASE)
-        if redirect_match:
+        if redirect_match and r < 6:
             redirect_title = redirect_match.group(1)
             # Handle fetching the redirected article (not implemented here)
             # search for the redirected article
@@ -524,7 +530,7 @@ def get_wikitext(dump_filename, offset, page_id=None, title=None, namespace_id=N
             results = response.json().get('hits', {}).get('hits', [])
             if results:
                 article = results[0]
-                return get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], article['_source']['seek'], article['_id'], article['_source']['title'])
+                return get_wikitext(WIKI_DIR + WIKI_URL.split('/')[-1], article['_source']['seek'], article['_id'], article['_source']['title'], r = (r + 1))
             else:
                 print(f"Redirected article not found: {redirect_title}", file=sys.stderr)
                 return None            
