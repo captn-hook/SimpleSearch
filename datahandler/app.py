@@ -866,7 +866,7 @@ if __name__ == '__main__':
     # run start up sync
     if os.getenv('SYNC_ON_STARTUP', 'false').lower() == 'true':
         print('Syncing wiki')
-        print(sync_wiki())
+       # print(sync_wiki())
         print('Syncing root')
         sync_root()
 
