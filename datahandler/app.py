@@ -412,14 +412,17 @@ def add_files_to_knowledge(knowledge_id, files):
     for file in files:
         res = upload_file(file, get_all_files())
         if res is not None:
-            data = {
-                'file_id': res['id']
-            }
-            try:
-                response = requests.post(url, headers=auth_header(), json=data)
-            except Exception as err:
-                print(err, file=sys.stderr)
-                return None
+            if res.get('id') is not None:
+                data = { 
+                    'file_id': res['id']
+                }
+                try:
+                    response = requests.post(url, headers=auth_header(), json=data)
+                except Exception as err:
+                    print(err, file=sys.stderr)
+                    return None
+            else:
+                print('Failed to upload, response: ' + str(res), file=sys.stderr)
     return requests.get(BASE_URL + 'knowledge/' + knowledge_id, headers=auth_header()).json()
 
 def sync(name, files):
@@ -879,6 +882,7 @@ if __name__ == '__main__':
                     directories.append(full_path)
                 else:
                     files.append(full_path)
+        print(files, file=sys.stderr)
         sync('Default', files)
 
     app.run(host='0.0.0.0', port=os.getenv('FLASK_PORT', 5000))
