@@ -434,6 +434,7 @@ def sync(name, files):
     for knowledge in knowledge_list:
         if knowledge['name'] == name:
             id = knowledge['id']
+            add_files_to_knowledge(id, files)
             return id
 
     if id is None:
