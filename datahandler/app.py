@@ -161,7 +161,7 @@ def sync_root():
                 directories.append(full_path)
             else:
                 files.append(full_path)
-
+    print(files, file=sys.stderr)
     knowledgeid = sync('Default', files)
     return redirect('/knowledge/' + knowledgeid)
 
@@ -868,6 +868,17 @@ if __name__ == '__main__':
         print('Syncing wiki')
        # print(sync_wiki())
         print('Syncing root')
-        sync_root()
+        files = []
+        directories = [BASE_DIRECTORY]
+
+        while directories:
+            current_directory = directories.pop()
+            for entry in os.listdir(current_directory):
+                full_path = os.path.join(current_directory, entry)
+                if os.path.isdir(full_path):
+                    directories.append(full_path)
+                else:
+                    files.append(full_path)
+        sync('Default', files)
 
     app.run(host='0.0.0.0', port=os.getenv('FLASK_PORT', 5000))
