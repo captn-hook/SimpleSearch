@@ -32,11 +32,13 @@ services:
       interval: 10s
       timeout: 100s
       retries: 10
+    command: >
+      bash -c "chmod +x /usr/share/opensearch/opensearch-docker-entrypoint.sh &&
+      /usr/share/opensearch/opensearch-docker-entrypoint.sh"
 
   opensearch-node2:
     image: opensearchproject/opensearch:latest
     container_name: opensearch-node2
-    user: 10000:1000
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node2
