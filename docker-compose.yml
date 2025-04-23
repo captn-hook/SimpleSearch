@@ -58,7 +58,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
       interval: 10s
-      timeout: 5s
+      timeout: 500s
       retries: 10
 
   ollama:
