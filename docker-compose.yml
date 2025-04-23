@@ -4,7 +4,7 @@ services:
   opensearch-node1:
     image: opensearchproject/opensearch:latest
     container_name: opensearch-node1
-    user: 10000:1000
+    user: 1000:1000
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node1
