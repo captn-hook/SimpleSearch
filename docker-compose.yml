@@ -4,7 +4,6 @@ services:
   opensearch-node1:
     image: opensearchproject/opensearch:latest
     container_name: opensearch-node1
-    user: root  # Run as root to allow chown
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node1
@@ -32,13 +31,10 @@ services:
       interval: 10s
       timeout: 100s
       retries: 10
-    command: >
-      sh -c "chown -R 1000:root /usr/share/opensearch/data && ./opensearch-docker-entrypoint.sh"
 
   opensearch-node2:
     image: opensearchproject/opensearch:latest
     container_name: opensearch-node2
-    user: root  # Run as root to allow chown    
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node2
@@ -64,8 +60,6 @@ services:
       interval: 10s
       timeout: 100s
       retries: 10
-    command: >
-      sh -c "chown -R 1000:root /usr/share/opensearch/data && ./opensearch-docker-entrypoint.sh"
 
   ollama:
     image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
