@@ -146,7 +146,7 @@ services:
 
 configs:
   tika_config_3:
-    file: ./tika-config.xml\
+    file: ./tika-config.xml
 
 volumes:
   datahandler: {}
