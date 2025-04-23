@@ -33,7 +33,7 @@ services:
       timeout: 100s
       retries: 10
     command: >
-      sh -c "chown -R 1000:root /usr/share/opensearch/data && /usr/local/bin/docker-entrypoint.sh"
+      sh -c "chown -R 1000:root /usr/share/opensearch/data && ./opensearch-docker-entrypoint.sh"
 
   opensearch-node2:
     image: opensearchproject/opensearch:latest
@@ -65,7 +65,7 @@ services:
       timeout: 100s
       retries: 10
     command: >
-      sh -c "chown -R 1000:root /usr/share/opensearch/data && /usr/local/bin/docker-entrypoint.sh"
+      sh -c "chown -R 1000:root /usr/share/opensearch/data && ./opensearch-docker-entrypoint.sh"
 
   ollama:
     image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
