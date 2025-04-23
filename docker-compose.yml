@@ -26,11 +26,11 @@ services:
       - ${VOLUME_PATH}/opensearch-data1:/usr/share/opensearch/data
     networks:
       - opensearch-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
-      interval: 10s
-      timeout: 500s
-      retries: 10
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+    #   interval: 10s
+    #   timeout: 500s
+    #   retries: 10
 
   opensearch-node2:
     image: opensearchproject/opensearch:latest
