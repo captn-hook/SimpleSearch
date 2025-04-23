@@ -873,6 +873,13 @@ if __name__ == '__main__':
        # print(sync_wiki())
         print('Syncing root')
         files = []
+        if not os.path.exists(BASE_DIRECTORY):
+            print(f"Base directory '{BASE_DIRECTORY}' does not exist. Creating it.", file=sys.stderr)
+            os.makedirs(BASE_DIRECTORY)
+        if not os.path.exists(WIKI_DIR):
+            print(f"Wiki directory '{WIKI_DIR}' does not exist. Creating it.", file=sys.stderr)
+            os.makedirs(WIKI_DIR)
+        
         directories = [BASE_DIRECTORY]
 
         while directories:
