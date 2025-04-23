@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> d49cd5ef2a63ce9bb625adfb004a1c14afb20790
 version: "3.9"
 
 services:
@@ -162,7 +158,6 @@ configs:
     file: ./tika-config.xml
 
 networks:
-<<<<<<< HEAD
   opensearch-net:
 
 =======
@@ -326,7 +321,3 @@ volumes:
 
 networks:
   opensearch-net:
->>>>>>> 63c03e469eb76f1b8343bc550c3c507a086fef22
-=======
-  opensearch-net:
->>>>>>> d49cd5ef2a63ce9bb625adfb004a1c14afb20790
