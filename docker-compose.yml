@@ -29,7 +29,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
       interval: 10s
-      timeout: 500s
+      timeout: 100s
       retries: 10
 
   opensearch-node2:
@@ -58,7 +58,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
       interval: 10s
-      timeout: 500s
+      timeout: 100s
       retries: 10
 
   ollama:
