@@ -4,6 +4,7 @@ services:
   opensearch-node1:
     image: opensearchproject/opensearch:latest
     container_name: opensearch-node1
+    user: root  # Run as root to allow chown
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node1
