@@ -2,3 +2,15 @@ Flask
 requests
 mwparserfromhell
 html2text
+outlines[openai]
+torch
+numpy
+transformers
+accelerate
+outlines_core
+jsonschema
+requests
+tqdm
+pydantic
+ollama
+openai

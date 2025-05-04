@@ -1,4 +1,4 @@
 /docs/*
 fake.*
-
+.env
 /JICVolumes

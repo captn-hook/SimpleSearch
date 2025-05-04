@@ -13,6 +13,19 @@ import mwparserfromhell
 import html2text
 from html import escape
 
+from openai import AsyncOpenAI
+from outlines import models
+from outlines.models.openai import OpenAIConfig
+
+client = AsyncOpenAI(
+    base_url="http://ollama:11434/v1/chat/completions",
+    api_key='',
+)
+config = OpenAIConfig("llama3.2:35b")
+model = models.openai(client, config)
+
+print("Starting up data handler with model: " + str(model))
+
 BASE_DIRECTORY = '/app/data/docs/'
 
 WIKI_DIR = '/app/data/wiki/'
