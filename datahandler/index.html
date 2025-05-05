@@ -114,6 +114,15 @@
             listKnowledge();
         }
 
+        async function getOutlines() {
+            const url = '/outlines?query=' + encodeURIComponent(document.getElementById('outlinesquery').value);
+            const response = await fetch(url);
+            const outlines = await response.json();
+            console.log(outlines);
+            const outlinesResponse = document.getElementById('outlinesresponse');
+            outlinesResponse.appendChild(document.createTextNode(json.stringify(outlines.response)));    
+        }
+
         window.onload = listFiles;
 
     </script>
@@ -132,5 +141,9 @@
     </div>
     <h2>Open WebUI Knowledge Base</h2>
     <ul id="knowledge-list"></ul>
+    <h2>Outlines generated</h2> 
+    <textarea id="outlinesquery" placeholder="Enter query"></textarea>
+    <button onclick="getOutlines()">Get Outlines</button>
+    <div id="outlinesresponse"></div>
 </body>
 </html>

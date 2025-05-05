@@ -50,7 +50,7 @@ also, you can add a tool like [ocrtool.py](./ocrtool.py)
 # Pages for all the services
 
     
-# [WebUI localhost:3000](http://localhost:3000/)
+ [WebUI localhost:3000](http://localhost:3000/)
 
 # [Data Handler localhost:5000](http://localhost:5000/)
     
@@ -61,3 +61,9 @@ also, you can add a tool like [ocrtool.py](./ocrtool.py)
 # [Opensearch localhost:9200](http://localhost:9200/)
 
 # [Tika localhost:9998](http://localhost:9998/)
+
+
+
+# todo
+
+ollama            | llama_init_from_model: n_ctx_per_seq (2048) < n_ctx_train (131072) -- the full capacity of the model will not be utilized                                                                                                             

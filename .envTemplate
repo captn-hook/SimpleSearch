@@ -29,3 +29,5 @@ VOLUME_PATH=/path/to/your/data
 
 USER_AGENT=SimpleSearch/1.0
 CORS_ALLOW_ORIGIN=http://localhost:3000
+
+PROVIDER_KEY=key

@@ -17,14 +17,44 @@ from openai import AsyncOpenAI
 from outlines import models
 from outlines.models.openai import OpenAIConfig
 
-client = AsyncOpenAI(
-    base_url="http://ollama:11434/v1/chat/completions",
-    api_key='',
-)
-config = OpenAIConfig("llama3.2:35b")
-model = models.openai(client, config)
+from outlines import generate
 
-print("Starting up data handler with model: " + str(model))
+from pydantic import BaseModel, ConfigDict, Field
+
+client = AsyncOpenAI(
+    base_url="http://ollama:11434/v1",
+    api_key=os.environ.get("PROVIDER_KEY"),
+)
+
+def get_model(model_name="llama3.2:3b"):
+    config = OpenAIConfig(model_name)
+    model = models.openai(client, config)
+    return model
+
+class Appliance(BaseModel):
+    model_config = ConfigDict(extra='forbid')  # required for openai
+    name: str
+    serial_number: str
+    warranty: str
+    age: int
+    room: str
+    installation_date: str
+
+
+# curl http://localhost:11434/v1/chat/completions     -H "Content-Type: application/json"     -d '{
+#         "model": "llama3.2:3b",
+#         "messages": [
+#             {
+#                 "role": "system",
+#                 "content": "You are a helpful assistant."
+#             },
+#             {
+#                 "role": "user",
+#                 "content": "Hello!"
+#             }
+#         ]
+#     }'
+
 
 BASE_DIRECTORY = '/app/data/docs/'
 
@@ -39,6 +69,13 @@ DB_URL = os.getenv('OPENSEARCH_URI', 'http://opensearch-node1:9200')
 
 global current_token
 current_token = None
+
+def outlines_request(query, model=None):
+
+    generator = generate.json(get_model(model), Appliance)
+    result = generator("List all appliances in this document: " + query)
+    print(result, file=sys.stderr)
+    return result
 
 
 def auth_header():
@@ -152,6 +189,19 @@ def token():
 @app.route('/')
 def explorer():
     return open('index.html').read()
+
+@app.route('/outlines', methods=['GET'])
+def outlines_route():
+    query = request.args.get('query')
+    if query is None:
+        return jsonify({"error": "No query provided"}), 400
+    model = request.args.get('model', 'llama3.2:3b')
+    if model is None:
+        return jsonify({"error": "No model provided"}), 400
+    
+    response = outlines_request(query, model)
+
+    return jsonify({"response": response.model_dump()})
 
 @app.route('/dir/<path:path>', methods=['GET'])
 def get_dir(path):
