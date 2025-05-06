@@ -31,16 +31,6 @@ def get_model(model_name="llama3.2:3b"):
     model = models.openai(client, config)
     return model
 
-class Appliance(BaseModel):
-    model_config = ConfigDict(extra='forbid')  # required for openai
-    name: str
-    serial_number: str
-    warranty: str
-    age: int
-    room: str
-    installation_date: str
-
-
 # curl http://localhost:11434/v1/chat/completions     -H "Content-Type: application/json"     -d '{
 #         "model": "llama3.2:3b",
 #         "messages": [
@@ -70,9 +60,30 @@ DB_URL = os.getenv('OPENSEARCH_URI', 'http://opensearch-node1:9200')
 global current_token
 current_token = None
 
-def outlines_request(query, model=None):
+schema = """{
+    "$defs": {
+        "Status": {
+            "enum": ["success", "failure"],
+            "title": "Status",
+            "type": "string"
+        }
+    },
+    "properties": {
+        "status": {
+            "$ref": "#/$defs/Status"
+        },
+        "response": {
+            "type": "string"
+        }
+    },
+    "required": ["status", "response"],
+    "title": "Structured Response",
+    "type": "object"
+}"""
 
-    generator = generate.json(get_model(model), Appliance)
+def outlines_request(query, model=None, form=schema):
+
+    generator = generate.json(get_model(model), form)
     result = generator("List all appliances in this document: " + query)
     print(result, file=sys.stderr)
     return result
@@ -193,15 +204,19 @@ def explorer():
 @app.route('/outlines', methods=['GET'])
 def outlines_route():
     query = request.args.get('query')
+    query = URLDecoder(query)
     if query is None:
         return jsonify({"error": "No query provided"}), 400
-    model = request.args.get('model', 'llama3.2:3b')
-    if model is None:
-        return jsonify({"error": "No model provided"}), 400
     
-    response = outlines_request(query, model)
+    model = request.args.get('model', 'llama3.2:3b')
+    model = URLDecoder(model)
 
-    return jsonify({"response": response.model_dump()})
+    form = request.args.get('form', schema)
+    form = URLDecoder(form)
+
+    response = outlines_request(query, model, form)
+
+    return jsonify({"response": response})
 
 @app.route('/dir/<path:path>', methods=['GET'])
 def get_dir(path):

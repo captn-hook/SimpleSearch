@@ -120,7 +120,7 @@
             const outlines = await response.json();
             console.log(outlines);
             const outlinesResponse = document.getElementById('outlinesresponse');
-            outlinesResponse.appendChild(document.createTextNode(json.stringify(outlines.response)));    
+            outlinesResponse.appendChild(document.createTextNode(JSON.stringify(outlines.response)));    
         }
 
         window.onload = listFiles;
