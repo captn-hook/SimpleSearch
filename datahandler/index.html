@@ -1,4 +1,5 @@
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,24 +12,30 @@
             padding: 10px;
             list-style: none;
         }
+
         ul li {
             display: flex;
             align-items: center;
         }
+
         ul li .icon {
             margin-right: 10px;
         }
+
         button {
             margin-top: 10px;
         }
+
         textarea {
             width: 200px;
             height: 30px;
             margin-right: 10px;
         }
+
         .div1 {
             margin: 10px;
         }
+
         .red {
             background-color: red;
             color: white;
@@ -67,12 +74,12 @@
                 response = await fetch(`/list_files/${dir}`);
                 // add links up the directory tree
                 if (dir.includes('/')) {
-                    innerhtml = `<a href="/">Knowledge Folder</a> / `;
+                    innerhtml = '<a href="/">Knowledge Folder</a> / ';
                     for (let i = 0; i < dir.split('/').length; i++) {
                         if (i === dir.split('/').length - 1) {
                             innerhtml += dir.split('/')[i];
                         } else {
-                            innerhtml += `<a href="/dir/${dir.split('/').slice(0, i + 1).join('/')}">${dir.split('/')[i]}</a> / `;
+                            innerhtml += `<a href="/dir/${dir.split(' / ').slice(0, i + 1).join(' / ')}">${dir.split(' / ')[i]}</a> / `;
                         }
                     }
                     const parentDirElement = document.getElementById('parent-dir');
@@ -94,7 +101,7 @@
                 li.appendChild(icon);
                 li.appendChild(document.createTextNode(dir2));
                 li.addEventListener('click', () => {
-                    window.location = `/dir/${dir}/${dir2}`;
+                    window.location = `/dir/${dir}/${dir2}`; // Navigate to the directory
                 });
                 fileList.appendChild(li);
             });
@@ -115,25 +122,75 @@
         }
 
         async function getOutlines() {
-            const url = '/outlines?query=' + encodeURIComponent(document.getElementById('outlinesquery').value);
-            const response = await fetch(url);
-            const outlines = await response.json();
-            console.log(outlines);
+            const url = '/outlines';
+            var model = document.getElementById('outlinesmodel').value;
+            var query = document.getElementById('outlinesquery').value;
+            var form = document.getElementById('outlinesform').value;
+
+            if (!model) {
+                model = 'llama3.2:3b';
+            }
+            if (!query) {
+                query = 'Are you active?';
+            }
+            if (!form) {
+                form = `{
+                    "$defs": {
+                        "Status": {
+                            "enum": ["success", "failure"],
+                            "title": "Status",
+                            "type": "string"
+                        }
+                    },
+                    "properties": {
+                        "status": {
+                            "$ref": "#/$defs/Status"
+                        },
+                        "response": {
+                            "type": "string"
+                        }
+                    },
+                    "required": ["status", "response"],
+                    "title": "Structured Response",
+                    "type": "object"
+                }`;
+            }
+
+            form = JSON.parse(form.trim());
+            
+            console.log('Model:', model);
+            console.log('Query:', query);
+            console.log('Form:', form);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: model,
+                    query: query,
+                    form: form
+                })
+            });
+            const data = await response.json();
             const outlinesResponse = document.getElementById('outlinesresponse');
-            outlinesResponse.appendChild(document.createTextNode(JSON.stringify(outlines.response)));    
+            outlinesResponse.appendChild(document.createTextNode(JSON.stringify(data, null, 2)));
         }
 
         window.onload = listFiles;
 
     </script>
 </head>
+
 <body>
     <h2 id="parent-dir">Knowledge Folder</h2>
     <ul id="file-list"></ul>
 
     <div class="div1">
         <textarea id="wiki-search" placeholder="Search Wiki"></textarea>
-        <button onclick="window.location = '/wiki?search=' + document.getElementById('wiki-search').value">Search</button>
+        <button
+            onclick="window.location = '/wiki?search=' + document.getElementById('wiki-search').value">Search</button>
     </div>
     <div class="div1">
         <button class="red" onclick="window.location = '/sync' + window.location.pathname">Sync Files</button>
@@ -141,9 +198,31 @@
     </div>
     <h2>Open WebUI Knowledge Base</h2>
     <ul id="knowledge-list"></ul>
-    <h2>Outlines generated</h2> 
+    <h2>Outlines generated</h2>
+    <textarea id="outlinesmodel" placeholder="llama3.2:3b"></textarea>
     <textarea id="outlinesquery" placeholder="Enter query"></textarea>
+    <textarea id="outlinesform" placeholder="{
+    '$defs': {
+        'Status': {
+            'enum': ['success', 'failure'],
+            'title': 'Status',
+            'type': 'string'
+        }
+    },
+    'properties': {
+        'status': {
+            '$ref': '#/$defs/Status'
+        },
+        'response': {
+            'type': 'string'
+        }
+    },
+    'required': ['status', 'response'],
+    'title': 'Structured Response',
+    'type': 'object'
+}"></textarea>
     <button onclick="getOutlines()">Get Outlines</button>
     <div id="outlinesresponse"></div>
 </body>
+
 </html>
