@@ -3,143 +3,153 @@ title: Home Health Record Framework
 author: Tristan Hook
 author_url: https://captn-hook.github.io/
 git_url: https://github.com/captn-hook/SimpleSearch
-description: This tool uses ollama to structure Home Health Record.
+description: This tool uses outlines to structure Home Health Record.
 required_open_webui_version: 0.4.0
-requirements: ollama
+requirements:
 version: 0.4.0
 licence: MIT
 """
+import json
+import requests
 
-from pydantic import BaseModel, Field
-from typing import List
+default_model = "llama3.2:3b"
 
-from ollama import chat
+example_schema = """{
+    "$defs": {
+        "Status": {
+            "enum": ["success", "failure"],
+            "title": "Status",
+            "type": "string"
+        }
+    },
+    "properties": {
+        "status": {
+            "$ref": "#/$defs/Status"
+        },
+        "response": {
+            "type": "string"
+        }
+    },
+    "required": ["status", "response"],
+    "title": "Structured Response",
+    "type": "object"
+}"""
 
-class Appliance(BaseModel):
-    name: str = Field(
-        default="",
-        description="The name of the appliance.",
-    )
-    serial_number: str = Field(
-        default="",
-        description="The serial number of the appliance.",
-    )
-    warranty: str = Field(
-        default="",
-        description="The warranty information of the appliance.",
-    )
-    age: int = Field(
-        default=0,
-        description="The age of the appliance in years.",
-    )
-    room: str = Field(
-        default="",
-        description="The room where the appliance is located.",
-    )
-    installation_date: str = Field(
-        default="",
-        description="The installation date of the appliance.",
-    )
+appliances_schema = """{
+    "$defs": {
+        "Appliance": {
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "brand": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+            }
+        },
+    },
+    "properties": {
+        "appliances": {
+            "items": {
+                "$ref": "#/$defs/Appliance"
+            },
+            "type": "array"
+        }
+    },
+    "required": ["appliances"],
+    "title": "Appliances",
+    "type": "object"
+}"""
 
-class Sensor(BaseModel):
-    name: str = Field(
-        default="",
-        description="The name of the sensor.",
-    )
-    type: str = Field(
-        default="",
-        description="The type of sensor (e.g., temperature, humidity, smoke).",
-    )
-    location: str = Field(
-        default="",
-        description="The location of the sensor in the home.",
-    )
+home_schema = """{
+    "properties": {
+        "address": {
+            "type": "string"
+        },
+        bedrooms: {
+            "type": "integer"
+        },
+        bathrooms: {
+            "type": "integer"
+        },
+        "square_footage": {
+            "type": "integer"
+        },
+        "year_built": {
+            "type": "integer"
+        },
+        "type": {
+            "type": "string"
+        },
+        "stories": {
+            "type": "integer"
+        },
+        "basement": {
+            "type": "boolean"
+        },
+        "garage": {
+            "type": "boolean"
+        },
+        "pool": {
+            "type": "boolean"
+        },
+        "roof_type": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string"
+        }
+    }
+    "required": ["address", "type"]
+    "title": "Home",
+    "type": "object"
+}"""
+                    
 
-class HomeHealthRecord(BaseModel):
-    home_address: str = Field(
-        default="",
-        description="The home address of the patient.",
-    )
-    home_type: str = Field(
-        default="",
-        description="The type of home (e.g., apartment, detached, semi-detached, terraced).",
-    )
-    year_built: int = Field(
-        default=0,
-        description="The year the home was built.",
-    )
-    location: str = Field(
-        default="",
-        description="The location of the home (latitude and longitude).",
-    )
-    soil_type: str = Field(
-        default="",
-        description="The type of soil the home is built on (e.g., clay, sand, stone).",
-    )
-    square_footage: int = Field(
-        default=0,
-        description="The square footage of the home.",
-    )
-    number_of_floors: int = Field(
-        default=0,
-        description="The number of floors in the home.",
-    )
-    number_of_living_rooms: int = Field(
-        default=0,
-        description="The number of living rooms in the home.",
-    )
-    number_of_bedrooms: int = Field(
-        default=0,
-        description="The number of bedrooms in the home.",
-    )
-    number_of_bathrooms: int = Field(
-        default=0,
-        description="The number of bathrooms in the home.",
-    )
-    basement: bool = Field(
-        default=False,
-        description="Whether the home has a basement.",
-    )
-    garage: bool = Field(
-        default=False,
-        description="Whether the home has a garage.",
-    )
-    wall_type: str = Field(
-        default="",
-        description="The type of walls in the home (e.g., brick, wood, concrete).",
-    )
-    pool: bool = Field(
-        default=False,
-        description="Whether the home has a pool.",
-    )
-    septic_tank: bool = Field(
-        default=False,
-        description="Whether the home has a septic tank.",
-    )
-    roof_type: str = Field(
-        default="",
-        description="The type of roof (e.g., flat, pitched, gabled).",
-    )
-    weather_conditions: str = Field(
-        default="", # try to fetch this from the weather API
-        description="The weather conditions in the area (e.g., humid, dry, rainy).",
-    )
-    appliances: List[Appliance] = Field(
-        default_factory=list,
-        description="A list of appliances in the home.",
-    )
-    sensors: List[Sensor] = Field(
-        default_factory=list,
-        description="A list of sensors in the home.",
-    )
+def get_response(query, model, form):
+    """
+    This function sends a request to the data handler API and returns the response.
+    
+    :param query: The query string to be sent to the API.
+    :param model: The model to be used for the request.
+    :param form: The form data to be sent in the request.
+    :return: The response from the API.
+    """
+    print("Starting get_response function")
+    url = "http://datahandler:5000/outlines"
 
+    try:
+        json_data = {
+            "query": query,
+            "model": model,
+            "form": form
+        }
+        headers = {
+            "Content-Type": "application/json"
+        }
+        response = requests.post(url, json=json_data, headers=headers)
+        response.raise_for_status()  # Raise an error for bad responses
+        response_data = response.json()
+        print("Response received:", response_data)
+        if response_data.get("status") == "success":
+            return response_data.get("response")
+        else:
+            raise ValueError("Failure: " + response_data.get("response", "Unknown error"))
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return {"error": str(e)}
 
 class Tools:
-
     def __init__(self):
         pass
-    
-    async def structure_home_health_record(
+   
+    async def appliance_form(
         self,
         message: str = "",
         __event_emitter__: str = "",
@@ -151,30 +161,25 @@ class Tools:
         __model__: str = ""
     ) -> dict:
         """
-        Use infomation provided about a home to fill out a home health record as completely as possible.
-        When the required information is not available, leave the field blank to fill in later.
-        The user can provide answers to questions, home inspection reports, or appliance manuals to help fill out the home health record.
-
-        :param message: The message to send to the model.
-        
+        This function is used to format appliance data from unstructured sources,
+        such as home inspection reports or attached files. It returns a list of 
+        appliance objects, which include details like type, brand, model, and 
+        location in the home.
+        :param message: Any string containing relevant appliance information.
+        :return: List of appliances with their details.
         """
-
-        # if there are files, use them to fill out the home health record
+        # If there are files, append their content to the message
         if __files__:
+            print(f"Files received: {__files__}")
             for file in __files__:
+                print(f"File content: {file['content']}")
                 message += f"\n\n{file['name']}: {file['content']}"
-
-        response = chat(
-        messages=[
-            {
-                "role": "user",
-                "content": message,
-            },
-        ],
-        model=__model__,
-        format=HomeHealthRecord.model_json_schema(),
+    
+        response = get_response(
+            query=message,
+            model=__model__.get('id'),
+            form=appliances_schema
         )
-
-        res = HomeHealthRecord.model_validate_json(response.message.content)
-        
-        return res
+    
+        return response
+    
