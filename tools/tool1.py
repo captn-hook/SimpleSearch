@@ -183,3 +183,37 @@ class Tools:
     
         return response
     
+    async def home_form(
+        self,
+        message: str = "",
+        __event_emitter__: str = "",
+        __event_call__: str = "",
+        __user__: dict = {},
+        __metadata__: dict = {},
+        __messages__: list = [],
+        __files__: list = [],
+        __model__: str = ""
+    ) -> dict:
+        """
+        This function is used to format home data from unstructured sources, 
+        such as home inspection reports or attached files. It returns a 
+        home object, which includes details like address, number of
+        bedrooms, bathrooms, square footage, year built and others.
+        :param message: Any string containing relevant home information.
+        :return: Home object with its details.
+        """
+        # If there are files, append their content to the message
+        if __files__:
+            print(f"Files received: {__files__}")
+            for file in __files__:
+                print(f"File content: {file['content']}")
+                message += f"\n\n{file['name']}: {file['content']}"
+    
+        response = get_response(
+            query=message,
+            model=__model__.get('id'),
+            form=home_schema
+        )
+    
+        return response
+    
