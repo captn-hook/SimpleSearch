@@ -49,9 +49,11 @@ you can add a [tool](https://docs.openwebui.com/features/plugin/tools/) like [oc
 
 Custom models allow you to configure system prompts, knowledge, and tools.
 
+![img](./image5.png)
+
 You can manage the user group a model belongs to
 
-![img](./image5.png)
+![img](./image6.png)
 
 # Pages for all the services
     
