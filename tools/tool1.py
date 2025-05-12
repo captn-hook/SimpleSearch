@@ -72,10 +72,10 @@ home_schema = """{
         "address": {
             "type": "string"
         },
-        bedrooms: {
+        "bedrooms": {
             "type": "integer"
         },
-        bathrooms: {
+        "bathrooms": {
             "type": "integer"
         },
         "square_footage": {
@@ -105,12 +105,11 @@ home_schema = """{
         "location": {
             "type": "string"
         }
-    }
-    "required": ["address", "type"]
+    },
+    "required": ["address", "type"],
     "title": "Home",
     "type": "object"
-}"""
-                    
+}"""    
 
 def get_response(query, model, form):
     """
@@ -136,11 +135,7 @@ def get_response(query, model, form):
         response = requests.post(url, json=json_data, headers=headers)
         response.raise_for_status()  # Raise an error for bad responses
         response_data = response.json()
-        print("Response received:", response_data)
-        if response_data.get("status") == "success":
-            return response_data.get("response")
-        else:
-            raise ValueError("Failure: " + response_data.get("response", "Unknown error"))
+        return response_data
     except Exception as e:
         print(f"Error occurred: {e}")
         return {"error": str(e)}
