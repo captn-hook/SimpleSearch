@@ -57,17 +57,17 @@ You can manage the user group a model belongs to
 
 # Pages for all the services
     
- [WebUI localhost:3000](http://localhost:3000/)
+## [WebUI localhost:3000](http://localhost:3000/)
 
-# [Data Handler localhost:5000](http://localhost:5000/)
+## [Data Handler localhost:5000](http://localhost:5000/)
     
-# [Opensearch localhost:5601](http://localhost:5601/)
+## [Opensearch localhost:5601](http://localhost:5601/)
 
-# [Ollama localhost:11434](http://localhost:11434/)
+## [Ollama localhost:11434](http://localhost:11434/)
         
-# [Opensearch localhost:9200](http://localhost:9200/)
+## [Opensearch localhost:9200](http://localhost:9200/)
 
-# [Tika localhost:9998](http://localhost:9998/)
+## [Tika localhost:9998](http://localhost:9998/)
 
 # todo
 
