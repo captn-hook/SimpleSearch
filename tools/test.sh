@@ -27,5 +27,8 @@ form="{
 }"
 
 # Use curl to upload the file with additional form fields
+    # -F "query=$query" \
+    # -F "model=$model" \
+    # -F "form=$form" \
 curl -F "file=@$1" \
-     http://localhost:5000/home
+    http://localhost:5000/home
